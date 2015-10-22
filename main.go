@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/kardianos/service"
 	"net"
+	"net/http"
 	"strings"
 )
 
@@ -30,11 +31,26 @@ func getLocalAddr() map[string]string {
 }
 
 func (p *program) Start(s service.Service) error {
-	go p.run(s)
+	go p.runUDP(s)
+	go p.runHttp(s)
 	return nil
 }
 
-func (p *program) run(s service.Service) {
+func (p *program) runHttp(s service.Service) {
+	http.HandleFunc("/cmd", func(w http.ResponseWriter, r *http.Request) {
+		logger.Info("cmd")
+		w.Write([]byte("success"))
+	})
+	logger.Info("http server start ...")
+	err := http.ListenAndServe(":7070", nil)
+	if err != nil {
+		logger.Error(err)
+		s.Stop()
+		return
+	}
+}
+
+func (p *program) runUDP(s service.Service) {
 	localAddr := getLocalAddr()
 	if localAddr == nil {
 		s.Stop()
