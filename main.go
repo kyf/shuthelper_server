@@ -71,13 +71,13 @@ func (p *program) runHttp(s service.Service) {
 				logger.Error(err)
 			}
 		})
-		logger.Info("http server start ...")
-		err := http.ListenAndServe(":7070", nil)
-		if err != nil {
-			logger.Error(err)
-			s.Stop()
-			return
-		}
+	}
+	logger.Info("http server start ...")
+	err := http.ListenAndServe(":7070", nil)
+	if err != nil {
+		logger.Error(err)
+		s.Stop()
+		return
 	}
 }
 
