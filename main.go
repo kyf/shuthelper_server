@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/kardianos/service"
 	"net"
 	"net/http"
@@ -40,32 +41,43 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) runHttp(s service.Service) {
-	http.HandleFunc("/cmd", func(w http.ResponseWriter, r *http.Request) {
-		logger.Info("cmd")
-		var cmd string
-		var args []string
-		switch runtime.GOOS {
-		case "windows":
-			cmd = "shutdown"
-			args = []string{"/f", "/p"}
-		default:
-			cmd = "shutdown"
-			args = []string{"-h", "now"}
-		}
+	var cmds []string = []string{"shut", "reboot"}
+	for index, command := range cmds {
+		http.HandleFunc(fmt.Sprintf("/%s", command), func(w http.ResponseWriter, r *http.Request) {
+			logger.Info(command)
+			var cmd string
+			var args []string
+			switch runtime.GOOS {
+			case "windows":
+				cmd = "shutdown"
+				if index == 0 {
+					args = []string{"/f", "/p"}
+				} else {
+					args = []string{"/r", "/t", "0"}
+				}
+			default:
+				cmd = "shutdown"
+				if index == 0 {
+					args = []string{"-h", "now"}
+				} else {
+					args = []string{"-r", "now"}
+				}
+			}
 
-		w.Write([]byte("success"))
-		c := exec.Command(cmd, args...)
-		err := c.Run()
+			w.Write([]byte("success"))
+			c := exec.Command(cmd, args...)
+			err := c.Run()
+			if err != nil {
+				logger.Error(err)
+			}
+		})
+		logger.Info("http server start ...")
+		err := http.ListenAndServe(":7070", nil)
 		if err != nil {
 			logger.Error(err)
+			s.Stop()
+			return
 		}
-	})
-	logger.Info("http server start ...")
-	err := http.ListenAndServe(":7070", nil)
-	if err != nil {
-		logger.Error(err)
-		s.Stop()
-		return
 	}
 }
 
