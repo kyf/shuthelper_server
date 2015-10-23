@@ -40,37 +40,44 @@ func (p *program) Start(s service.Service) error {
 	return nil
 }
 
+type myHandler func(http.ResponseWriter, *http.Request)
+
+func handleFunc(index int, command string) myHandler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(command)
+		var cmd string
+		var args []string
+		switch runtime.GOOS {
+		case "windows":
+			cmd = "shutdown"
+			if index == 0 {
+				args = []string{"/f", "/p"}
+			} else {
+				args = []string{"/r", "/t", "0"}
+			}
+		default:
+			cmd = "shutdown"
+			if index == 0 {
+				args = []string{"-h", "now"}
+			} else {
+				args = []string{"-r", "now"}
+			}
+		}
+
+		w.Write([]byte("success"))
+		c := exec.Command(cmd, args...)
+		err := c.Run()
+		if err != nil {
+			logger.Error(err)
+		}
+	}
+
+}
+
 func (p *program) runHttp(s service.Service) {
 	var cmds []string = []string{"shut", "reboot"}
 	for index, command := range cmds {
-		http.HandleFunc(fmt.Sprintf("/%s", command), func(w http.ResponseWriter, r *http.Request) {
-			logger.Info(command)
-			var cmd string
-			var args []string
-			switch runtime.GOOS {
-			case "windows":
-				cmd = "shutdown"
-				if index == 0 {
-					args = []string{"/f", "/p"}
-				} else {
-					args = []string{"/r", "/t", "0"}
-				}
-			default:
-				cmd = "shutdown"
-				if index == 0 {
-					args = []string{"-h", "now"}
-				} else {
-					args = []string{"-r", "now"}
-				}
-			}
-
-			w.Write([]byte("success"))
-			c := exec.Command(cmd, args...)
-			err := c.Run()
-			if err != nil {
-				logger.Error(err)
-			}
-		})
+		http.HandleFunc(fmt.Sprintf("/%s", command), handleFunc(index, command))
 	}
 	logger.Info("http server start ...")
 	err := http.ListenAndServe(":7070", nil)
