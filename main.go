@@ -6,6 +6,7 @@ import (
 	"github.com/kardianos/service"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -80,8 +81,14 @@ func (p *program) runUDP(s service.Service) {
 				continue
 			}
 			logger.Infof("receive [%v] data : %s \n", addr.IP, string(out))
+			hostname, err := os.Hostname()
+			if err != nil {
+				logger.Error(err)
+				hostname = "unknown"
+			}
 			resp := map[string]string{
-				"ip": localAddr["IP"],
+				"ip":       localAddr["IP"],
+				"hostname": hostname,
 			}
 			r, err := json.Marshal(resp)
 			if err != nil {
