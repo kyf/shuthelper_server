@@ -98,7 +98,7 @@ func (p *program) runUDP(s service.Service) {
 				logger.Error(err)
 				continue
 			}
-			logger.Infof("receive [%v] data : %s \n", addr.IP, string(out))
+			//logger.Infof("receive [%v] data : %s \n", addr.IP, string(out))
 			hostname, err := os.Hostname()
 			if err != nil {
 				logger.Error(err)
