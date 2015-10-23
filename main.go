@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -40,7 +42,23 @@ func (p *program) Start(s service.Service) error {
 func (p *program) runHttp(s service.Service) {
 	http.HandleFunc("/cmd", func(w http.ResponseWriter, r *http.Request) {
 		logger.Info("cmd")
+		var cmd string
+		var args []string
+		switch runtime.GOOS {
+		case "windows":
+			cmd = "shutdown"
+			args = []string{"/f", "/p"}
+		default:
+			cmd = "shutdown"
+			args = []string{"-h", "now"}
+		}
+
 		w.Write([]byte("success"))
+		c := exec.Command(cmd, args...)
+		err := c.Run()
+		if err != nil {
+			logger.Error(err)
+		}
 	})
 	logger.Info("http server start ...")
 	err := http.ListenAndServe(":7070", nil)
